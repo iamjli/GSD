@@ -1,7 +1,4 @@
 
-
-
-
 """
 
 This file contains methods to evaluate different models performance on synthetic and known data. 
@@ -80,15 +77,19 @@ class Evaluate:
 		self.data_matrices = [ self._data_matrix(**params) for params in self.params_iterator ]
 
 
+	########  EVALUATE  ########
+
 	def evaluate(self, ): 
 		pass
 
+
+	########  DATA GENERATION  ########
 
 	def _source_matrix(self, support_size, n_sources):
 
 		# Matrix of genes x sources (aka components)
 		# This should be shared across all parameter sets with the same `n_sources` and `support_size_vals`
-		sources = np.array([ self.sampler(support_size) for _ in range(n_sources) ]).T  
+		sources = np.array([ self.sampler(self.graph, support_size) for _ in range(n_sources) ]).T  
 		return sources
 
 	def _loadings_matrix(self, n_sources, n_samples):
@@ -120,71 +121,6 @@ class Evaluate:
 		data = np.random.normal( sources.dot(loadings), scale=noise)
 		return data
 
-
-
-
-
-
-
-
-# class Evaluate:
-
-# 	def __init__(self, graph, sampler, param_grid): 
-
-# 		self.graph = graph
-# 		self.sampler = sampler
-# 		self.param_grid = param_grid
-
-# 		assert "n_samples" in self.param_grid
-# 		# and so on
-
-# 		self.max_n_samples = max(self.param_grid['n_samples'])
-
-# 		# Build lookup dict to map parameters to sampled data
-# 		self.data_matrix_lookup = self._build_data_matrix_lookup()
-
-
-# 	def _build_data_matrix_lookup(self):
-
-# 		data_matrix_lookup = {}
-
-# 		# Retrieve parameter values necessary for generating the data matrix
-# 		data_param_grid = { param : self.param_grid[param] for param in ['n_sources', 'support_size', 'noise'] }
-
-# 		for params in ParameterGrid(data_param_grid): 
-
-# 			# Add data matrices keyed by parameter
-# 			params_key = (params['n_sources'], params['support_size'], params['noise'])
-# 			data_matrix_lookup[params_key] = self._sample_data(**params)
-
-# 		return data_matrix_lookup
-
-
-# 	def _sample_data(self, n_sources, support_size, noise): 
-
-# 		# Matrix of genes x sources (aka components)
-# 		sources = np.array([ self.sampler(support_size) for _ in range(n_sources) ]).T  
-# 		# Matrix of sources x sample latent values 
-# 		loadings = np.random.rand(n_sources, self.max_n_samples)
-
-# 		# Add noise to the reconstructed and add to params dict
-# 		# Matrix of genes x samples
-# 		data = np.random.normal( sources.dot(loadings), scale=noise)
-
-# 		matrices = dict(source_matrix=sources, loading_matrix=loadings, data_matrix=data)
-
-# 		return matrices
-
-
-# 	def query_data_matrix(self, n_sources, support_size, noise, n_samples): 
-
-# 		# Get data matrix from lookup dictionary
-# 		params_key = (n_sources, support_size, noise)
-# 		full_data_matrix = self.data_matrix_lookup[params_key]['data_matrix']
-# 		# Return the correct number of samples
-# 		data_matrix = full_data_matrix[:,:n_samples]
-
-# 		return data_matrix
 
 
 
