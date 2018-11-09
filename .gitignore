@@ -1,0 +1,6 @@
+
+# SFTP
+scripts/sftp-config.json
+
+# Virtual environment
+venv

@@ -1,0 +1,17 @@
+# Data analysis
+pandas==0.23.4
+numpy
+scipy
+sklearn
+
+# Graphs
+networkx
+python-louvain
+pcst_fast>=1.0.6
+
+# Plotting
+matplotlib
+seaborn
+
+# Notebooks
+jupyter
