@@ -42,17 +42,17 @@ class GSD:
 		if self.n_samples > self.n_features: 
 			logger.warn("Number of samples exceeds number of features, class may not function properly!")
 
-		# Get graph edgelist as node indices for PCST
+		# Get graph edgelist as node indices for PCST.
 		self._set_namespace_mappings()
 		self._edges_pcst = self._to_indices(self.graph.edges)
 		# Get edge costs scaled by parameter a as an array
 		self.edge_cost = self._edge_costs()
 
-		# Initialize graph components
-		if initializer == 'svd': 
-			self.components, self.scores = self._svd_initializer(self.X, n_components=self.n_components)
+		# Initialize graph components.
+		if initializer == 'ica': 
+			self.components, self.scores = self._ica_initializer()
 		elif initializer == 'random': 
-			self.components, self.scores = self._random_initializer(self.X, n_components=self.n_components)
+			self.components, self.scores = self._random_initializer()
 
 		# Initialize edges. Finds the minimum spanning tree to use as a baseline.
 		self.tree_edges = [ self._pcst(np.ones(self.n_features), self.edge_cost*0)[1] ] * self.n_components
@@ -63,26 +63,28 @@ class GSD:
 	########  HELPER FUNCTIONS  ########
 
 	def _set_namespace_mappings(self): 
-		# Mappings. Enumerating through network object iterates through its nodes
+		"""Sets namespace mappings between gene names and node indices."""
 		self._gene_to_index = { gene: i for i,gene in enumerate(self.graph) }
 		self._index_to_gene = { i: gene for i,gene in enumerate(self.graph) }
 	
 	def _to_indices(self, genes): 
+		"""Converts object with gene names to node indices."""
 		return np.vectorize(self._gene_to_index.get)(genes)
 		
 	def _to_genes(self, indices): 
+		"""Converts object with node indices to gene names."""
 		return np.vectorize(self._index_to_gene.get)(indices)
 
-	
 	def _pcst(self, prizes, costs): 
-		# Wrapper for `pcsf_fast`. Returns vertex and edge indices
+		"""Wrapper for `pcsf_fast`. Returns vertex and edge indices."""
 		return pcst_fast(self._edges_pcst, prizes, costs, -1, 1, 'strong', 0)
 		
 	def _edge_costs(self): 
-		# Scale edge costs by parameter a
+		"""Returns edge costs scaled by `a`."""
 		return self.a * np.array([ cost for _,_,cost in self.graph.edges.data('cost') ])
 
 	def supports(self): 
+		"""Gets component supports."""
 		return (self.components != 0).astype(int)
 
 
@@ -90,7 +92,7 @@ class GSD:
 	
 	def compute_objective(self, D, Z, tree_edges): 
 		"""
-		Compute objective score for components D and scores Z
+		Computes objective score for components D and scores Z
 
 		Arguments: 
 			D (numpy.array): 2D dictionary components array (n_components, n_features) 
@@ -183,15 +185,16 @@ class GSD:
 
 	def update(self, i, same_sign=True): 
 		"""
-		Update component and scores matrix together along with associated tree_edgelist and model metrics
+		Updates component and scores matrix together along with associated tree_edgelist and model metrics
 
 		Arguments: 
 			i (int): component index
+			same_sign (bool): if True, component values must be all positive or all negative
 		"""
 		new_D, new_tree_i = self._update_component(i, self.components, self.scores, same_sign=same_sign)
 		new_Z = self._update_scores(new_D)
 
-		# Check if updated matrices improve upon objective
+		# Check if updated matrices improve upon objective.
 		if True: 
 			self.components = new_D
 			self.scores = new_Z
@@ -200,16 +203,31 @@ class GSD:
 			self.objective, self.error, self.tree_cost = self.compute_objective(self.components, self.scores, self.tree_edges)
 
 		# Check if new component is too small or only one element, then remove. 
+		# TODO
 
 
 	########  INITIALIZATION  ########
 	
-	def _random_initializer(self, X, n_components): 
-
-		n_samples, n_features = X.shape
-		# Shape (n_components, n_features)
-		components = np.random.normal(size=(n_components, n_features))
-		# Shape (n_samples, n_components)
-		scores = self._OLS(X, components)
+	def _random_initializer(self): 
+		"""
+		Initializes dictionary and scores matrices randomly.
+		"""
+		components = np.random.normal( size=(self.n_components, self.n_features) ) 
+		scores     = self._OLS( self.X, components ) # (n_samples, n_components)
+		logger.info("Initialized components and scores randomly.")
 		
 		return components, scores
+
+
+	def _ica_initializer(self): 
+		"""
+		Initializes dictionary and scores matrices with independent component analysis (ICA).
+		"""
+		ica = FastICA(n_components=self.n_components, max_iter=1000)
+		# Because n_samples < n_features, we must transpose
+		sources = ica.fit_transform(self.X.T).T  # (n_sources, n_features)
+		mixing  = ica.mixing_  # (n_samples, n_sources)
+		logger.info("Initialized components and scores via ICA.")
+
+		return sources, mixing
+
