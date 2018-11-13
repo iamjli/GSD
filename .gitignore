@@ -1,10 +1,11 @@
 
 # Data
 data
+papers
 
-
-# SFTP
+# Personal
 **/sftp-config.json
+**/.DS_Store
 
 # Virtual environment
 venv

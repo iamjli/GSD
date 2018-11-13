@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python3
 
 """
 
@@ -65,7 +65,7 @@ def sample_random_walk_fixed_iters(graph, iters):
 	current_node = visited_nodes[0]
 	
 	for _ in range(iters): 
-		genes,scores = zip(*[[neighbor,cofidence] for _,neighbor,cofidence in graph.edges(current_node, data="confidence")])
+		genes,scores = zip(*[[neighbor,confidence] for _,neighbor,confidence in graph.edges(current_node, data="confidence")])
 		genes = list(genes)
 		scores = np.array(scores) / sum(scores)
 		
