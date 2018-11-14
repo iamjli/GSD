@@ -143,8 +143,8 @@ class GSD:
 		optimal_D_i = np.dot(Z_i, Z_i) ** (-1) * np.dot(Z_i, X_res)
 
 		# Assign prizes to be the amount of error saved by including a node in the component tree. 
-		# This is calculated by taking the difference in reconstruction error with and without the node.
-		prizes = (X_res ** 2).sum(axis=0) - ((X_res - np.outer(Z_i, optimal_D_i)) ** 2).sum(axis=0)
+		# This is calculated by taking the difference in mean reconstruction error with and without the node.
+		prizes = (X_res ** 2).mean(axis=0) - ((X_res - np.outer(Z_i, optimal_D_i)) ** 2).mean(axis=0)
 
 		if same_sign: 
 			# Require values within each component to have the same sign by setting values of the opposite sign to 0.

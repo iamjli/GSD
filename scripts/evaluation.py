@@ -45,6 +45,7 @@ class Data:
 		self.paramlist = list(ParameterGrid(self.param_grid))
 		logger.info("{} parameter sets loaded.".format(len(self.paramlist)))
 
+
 	########  DATA GENERATION  ######## 
 
 	def _param_iterator(self, keys): 
@@ -80,7 +81,15 @@ class Data:
 		data_params = self._param_iterator(['n_sources', 'n_samples', 'noise', 'rep'])
 		self.data_matrices = { params : self._data_matrix(*params) for params in data_params }
 
+
 	########  EVALUATION  ######## 
+
+	def evaluate_single_param(self, model, param): 
+
+		results = model(self.get_data(**param))
+		scores = recovery_relevance(results, self.get_sources(**param))
+
+		return results, scores
 
 	def evaluate(self, model): 
 
@@ -94,7 +103,6 @@ class Data:
 
 		return results, scores
 
-
 	def summarize_scores(self, scores): 
 
 		params_df = pd.DataFrame(self.paramlist)
@@ -104,6 +112,7 @@ class Data:
 		df = df.groupby(by=['n_samples', 'n_sources', 'noise']).agg([np.mean, np.std]).drop(columns=['rep'])
 		
 		return df
+
 
 	########  DATA QUERY  ######## 
 
