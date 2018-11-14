@@ -33,6 +33,9 @@ class GSD:
 
 	def __init__(self, X, graph, a, n_components, initializer='random'): 
 
+		# Import as networkx object if path is provided
+		if isinstance(graph, str): graph = nx.read_gpickle(graph)
+
 		self.X = X          # Data matrix (n_samples, n_features) whose features are ordered according to graph.nodes
 		self.graph = graph  # networkx interactome
 		self.a = a          # Sparsity edge constraint 
