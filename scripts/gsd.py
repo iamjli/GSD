@@ -16,7 +16,7 @@ from pcst_fast import pcst_fast
 
 # Statistics
 from scipy import stats
-from sklearn.decomposition import PCA, FastICA
+from sklearn.decomposition import FastICA
 
 
 logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ class GSD:
 		# Get graph edgelist as node indices for PCST.
 		self._set_namespace_mappings()
 		self._edges_pcst = self._to_indices(self.graph.edges)
-		# Get edge costs scaled by parameter a as an array
+		# Get scaled edge costs.
 		self.edge_cost = self._edge_costs()
 
 		# Initialize graph components.
@@ -53,6 +53,8 @@ class GSD:
 			self.components, self.scores = self._ica_initializer()
 		elif initializer == 'random': 
 			self.components, self.scores = self._random_initializer()
+		else: 
+			logger.warn("Initializer must be set to `random` or `ica`.")
 
 		# Initialize edges. Finds the minimum spanning tree to use as a baseline.
 		self.tree_edges = [ self._pcst(np.ones(self.n_features), self.edge_cost*0)[1] ] * self.n_components
@@ -89,43 +91,28 @@ class GSD:
 
 
 	########  DICTIONARY LEARNING  ########
-	
-	def compute_objective(self, D, Z, tree_edges): 
+
+	def update(self, i, same_sign=True): 
 		"""
-		Computes objective score for components D and scores Z
+		Updates component and scores matrix together along with associated tree_edgelist and model metrics
 
 		Arguments: 
-			D (numpy.array): 2D dictionary components array (n_components, n_features) 
-			Z (numpy.array): 2D scores array (n_samples, n_components)
-			tree_edges (list of lists): Edge indices corresponding to each component in D
-
-		Returns: 
-			float: objective score
-			float: reconstruction error 
-			float: cost of all trees
+			i (int): component index
+			same_sign (bool): if True, component values must be all positive or all negative
 		"""
-		
-		# Total cost of edges for all trees
-		tree_cost = sum([ sum(self.edge_cost[edges]) for edges in tree_edges ])
-		# Reconstruction error
-		error = ((self.X - Z.dot(D)) ** 2).sum()
-		# Objective score
-		objective = error + tree_cost
-		
-		return objective, error, tree_cost
+		new_D, new_tree_i = self._update_component(i, self.components, self.scores, same_sign=same_sign)
+		new_Z = self._update_scores(new_D)
 
-	def _OLS(self, X, D):
-		"""
-		Ordinary least squares - computes scores matrix Z that minimizes X ~ Z . D
+		# Check if updated matrices improve upon objective.
+		if True: 
+			self.components = new_D
+			self.scores = new_Z
+			self.tree_edges[i] = new_tree_i
 
-		Arguments: 
-			X (numpy.array): 2D data matrix (n_samples, n_features) 
-			D (numpy.array): 2D dictionary components array (n_components, n_features) 
+			self.objective, self.error, self.tree_cost = self.compute_objective(self.components, self.scores, self.tree_edges)
 
-		Returns: 
-			numpy.array: 2D scores array indicating proportions of each component (n_samples, n_components)
-		"""
-		return np.linalg.inv(D.dot(D.T)).dot(D).dot(X.T).T
+		# Check if new component is too small or only one element, then remove. 
+		# TODO
 
 	def _update_component(self, i, D, Z, same_sign=True): 
 		"""
@@ -160,15 +147,11 @@ class GSD:
 		prizes = (X_res ** 2).sum(axis=0) - ((X_res - np.outer(Z_i, optimal_D_i)) ** 2).sum(axis=0)
 
 		if same_sign: 
-			# Require values within each component to have the same sign. Check which direction the 
-			# component is skewed towards and set prizes accordingly. 
+			# Require values within each component to have the same sign by setting values of the opposite sign to 0.
 			if stats.skew(optimal_D_i) > 0:
-				prizes = (optimal_D_i > 0).astype(int) * prizes
+				prizes[ optimal_D_i < 0 ] = 0
 			else: 
-				prizes = (optimal_D_i < 0).astype(int) * prizes
-
-		# Prize should be stricly positive, but we clip to correct for possible negatives caused by floating points
-		# prizes = prizes.clip(min=0)
+				prizes[ optimal_D_i > 0 ] = 0
 
 		node_indices, edge_indices = self._pcst(prizes, self.edge_cost)
 
@@ -178,40 +161,51 @@ class GSD:
 		return D, edge_indices
 
 	def _update_scores(self, D): 
-		"""
-		Updates scores matrix by fixing dictionary D
-		"""
+		"""Updates scores matrix by fixing dictionary D."""
 		return self._OLS(self.X, D)
 
-	def update(self, i, same_sign=True): 
+	def _OLS(self, X, D):
 		"""
-		Updates component and scores matrix together along with associated tree_edgelist and model metrics
+		Ordinary least squares - computes scores matrix Z that minimizes X ~ Z . D
 
 		Arguments: 
-			i (int): component index
-			same_sign (bool): if True, component values must be all positive or all negative
+			X (numpy.array): 2D data matrix (n_samples, n_features) 
+			D (numpy.array): 2D dictionary components array (n_components, n_features) 
+
+		Returns: 
+			numpy.array: 2D scores array indicating proportions of each component (n_samples, n_components)
 		"""
-		new_D, new_tree_i = self._update_component(i, self.components, self.scores, same_sign=same_sign)
-		new_Z = self._update_scores(new_D)
+		return np.linalg.inv(D.dot(D.T)).dot(D).dot(X.T).T
+	
+	def compute_objective(self, D, Z, tree_edges): 
+		"""
+		Computes objective score for components D and scores Z
 
-		# Check if updated matrices improve upon objective.
-		if True: 
-			self.components = new_D
-			self.scores = new_Z
-			self.tree_edges[i] = new_tree_i
+		Arguments: 
+			D (numpy.array): 2D dictionary components array (n_components, n_features) 
+			Z (numpy.array): 2D scores array (n_samples, n_components)
+			tree_edges (list of lists): Edge indices corresponding to each component in D
 
-			self.objective, self.error, self.tree_cost = self.compute_objective(self.components, self.scores, self.tree_edges)
-
-		# Check if new component is too small or only one element, then remove. 
-		# TODO
+		Returns: 
+			float: objective score
+			float: reconstruction error 
+			float: cost of all trees
+		"""
+		
+		# Total cost of edges for all trees
+		tree_cost = sum([ sum(self.edge_cost[edges]) for edges in tree_edges ])
+		# Reconstruction error
+		error = ((self.X - Z.dot(D)) ** 2).sum()
+		# Objective score
+		objective = error + tree_cost
+		
+		return objective, error, tree_cost
 
 
 	########  INITIALIZATION  ########
 	
 	def _random_initializer(self): 
-		"""
-		Initializes dictionary and scores matrices randomly.
-		"""
+		"""Initializes dictionary and scores matrices randomly."""
 		components = np.random.normal( size=(self.n_components, self.n_features) ) 
 		scores     = self._OLS( self.X, components ) # (n_samples, n_components)
 		logger.info("Initialized components and scores randomly.")
@@ -220,9 +214,7 @@ class GSD:
 
 
 	def _ica_initializer(self): 
-		"""
-		Initializes dictionary and scores matrices with independent component analysis (ICA).
-		"""
+		"""Initializes dictionary and scores matrices with independent component analysis (ICA)."""
 		ica = FastICA(n_components=self.n_components, max_iter=1000)
 		# Because n_samples < n_features, we must transpose
 		sources = ica.fit_transform(self.X.T).T  # (n_sources, n_features)

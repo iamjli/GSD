@@ -92,7 +92,7 @@ class Data:
 			comparisons = [ (result, self.get_sources(**params)) for result,params in zip(*[results, self.paramlist]) ]
 			scores = pool.starmap(recovery_relevance, comparisons)
 
-		return scores
+		return results, scores
 
 
 	def summarize_scores(self, scores): 
