@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 
+# Core python modules
 import os
 import logging
 from functools import partial
 
-# Data processing
+# Python external libraries
 import pandas as pd
 import numpy as np
-
-from sklearn.decomposition import FastICA
 from scipy import stats
+from sklearn.decomposition import FastICA
 
+# Internal modules
 from gsd import GSD
 
 
@@ -21,8 +22,6 @@ handler = logging.StreamHandler()
 handler.setLevel(logging.INFO)
 handler.setFormatter(logging.Formatter('%(asctime)s - Models: %(levelname)s - %(message)s', "%I:%M:%S"))
 logger.addHandler(handler)
-
-
 
 
 def save_results(X_path, out_path, model_params):

@@ -1,22 +1,20 @@
 #!/usr/bin/env python3
 
-# OS
+# Core python modules
 import os
 import pickle
 import multiprocessing
 import logging
 
-# Data processing
+# Python external libraries
 import pandas as pd
 import numpy as np
-
-# Networks
 import networkx as nx
-from pcst_fast import pcst_fast
-
-# Statistics
 from scipy import stats
 from sklearn.decomposition import FastICA
+
+# Lab modules
+from pcst_fast import pcst_fast
 
 
 logger = logging.getLogger(__name__)
@@ -218,7 +216,7 @@ class GSD:
 
 	def _ica_initializer(self): 
 		"""Initializes dictionary and scores matrices with independent component analysis (ICA)."""
-		ica = FastICA(n_components=self.n_components, max_iter=1000)
+		ica = FastICA(n_components=self.n_components)
 		# Because n_samples < n_features, we must transpose
 		sources = ica.fit_transform(self.X.T).T  # (n_sources, n_features)
 		mixing  = ica.mixing_  # (n_samples, n_sources)

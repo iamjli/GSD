@@ -7,19 +7,19 @@ import logging
 import multiprocessing
 from functools import partial
 
-# Data processing
+# Python external libraries
 import pandas as pd
 import numpy as np
+import networkx as nx
 from sklearn.model_selection import ParameterGrid
 
-# Networks
-import networkx as nx
+# Peripheral python modules
+import argparse
 
-# Modules
+# Internal modules
 from samplers import SourceSampler, LoadingSampler
-from models import save_results, get_model, get_model_tag
-
-from scoring import recovery_relevance, precision_recall
+from models import save_results, get_model_tag
+# from scoring import recovery_relevance, precision_recall
 
 
 logger = logging.getLogger(__name__)
@@ -32,14 +32,13 @@ logger.addHandler(handler)
 
 n_cpus = multiprocessing.cpu_count()
 
-
 class Evaluate:
 
-	def __init__(self, home_dir, data_specs_path, model_specs_path, params=dict()): 
+	def __init__(self, home_dir, data_specs_file, model_specs_file): 
 
 		self.home_dir = home_dir
-		self.data_specs_path = data_specs_path
-		self.model_specs_path = model_specs_path
+		self.data_specs_file = data_specs_file
+		self.model_specs_file = model_specs_file
 
 		# Directory names for source, loading, and data matrix files.
 		self.D_dir = os.path.join(self.home_dir, "data", "sources")
@@ -47,21 +46,24 @@ class Evaluate:
 		self.X_dir = os.path.join(self.home_dir, "data", "data_matrices")
 
 		# Load data and model parameter specifications
-		with open(self.data_specs_path) as f:  self.data_specs  = json.load(f)
-		with open(self.model_specs_path) as f: self.model_specs = json.load(f)
+		with open(self.data_specs_file) as f:  self.data_specs  = json.load(f)
+		with open(self.model_specs_file) as f: self.model_specs = json.load(f)
 
 		# Iterators for data and model parameters
 		self.data_paramlist = ParameterGrid(self.data_specs['grid'])
 		# For each model method, create parameter dict from each parameter grid.
 		self.model_paramlist = [ { **p, 'method':model_attr['method'] } for model_attr in self.model_specs for p in ParameterGrid(model_attr['grid']) ]
 
+		# Get path from parameters
 		self._data_tag = lambda param: "{n_samples}_{n_sources}_{noise}_{size}_{rep}.npy".format(**param)
-		self._D_path = lambda param: os.path.join(self.D_dir, "{n_sources}_{size}_{rep}.npy".format(**param))
-		self._Z_path = lambda param: os.path.join(self.Z_dir, "{n_samples}_{n_sources}_{rep}.npy".format(**param))
-		self._X_path = lambda param: os.path.join(self.X_dir, self._data_tag(param))
+		self._D_path   = lambda param: os.path.join(self.D_dir, "{n_sources}_{size}_{rep}.npy".format(**param))
+		self._Z_path   = lambda param: os.path.join(self.Z_dir, "{n_samples}_{n_sources}_{rep}.npy".format(**param))
+		self._X_path   = lambda param: os.path.join(self.X_dir, self._data_tag(param))
 
 
 	def run_grid(self, model_param): 
+
+		logger.info("Running {} with parameters: {}".format(model_param["method"], model_param))
 
 		results_dir = os.path.join(self.home_dir, "results", get_model_tag(**model_param))
 		os.makedirs(results_dir, exist_ok=True)
@@ -73,12 +75,11 @@ class Evaluate:
 
 	def initialize_data(self):
 
-		# 
-
 		os.makedirs(self.D_dir, exist_ok=True)
 		os.makedirs(self.Z_dir, exist_ok=True)
 		os.makedirs(self.X_dir, exist_ok=True)
 
+		# Sampler objects for generating source and loading matrices
 		source_sampler  = SourceSampler(self.data_specs['graph'], self.data_specs['source_sampler_method'])
 		loading_sampler = LoadingSampler(self.data_specs['loading_sampler_method'])
 
@@ -87,8 +88,6 @@ class Evaluate:
 			D_path = self._D_path(param)
 			Z_path = self._Z_path(param)
 			X_path = self._X_path(param)
-
-			# if ~os.path.exists(D_path): D = source_sampler.sample(**param)
 
 			# Load source matrix, or generate and save if file doesn't exist yet.
 			if os.path.exists(D_path):
@@ -112,3 +111,49 @@ class Evaluate:
 				X = np.random.normal( Z.dot(D), scale=param['noise'] ** 0.5)
 				np.save(X_path, X)
 				logger.info("Wrote data matrix: {}.".format(X_path))
+
+
+
+parser = argparse.ArgumentParser(description="""Evaluate different models for synthetic data.""")
+
+class FullPaths(argparse.Action):
+	"""Expand user- and relative-paths"""
+	def __call__(self,parser, namespace, values, option_string=None):
+		setattr(namespace, self.dest, os.path.abspath(os.path.expanduser(values)))
+
+def directory(dirname):
+	if not os.path.isdir(dirname): raise argparse.ArgumentTypeError(dirname + " is not a directory")
+	else: return dirname
+
+# Input / Output parameters:
+io_params = parser.add_argument_group("Input / Output Files")
+
+io_params.add_argument("-o", "--output", dest='output_dir', action=FullPaths, type=directory, required=True,
+	help='(Required) Output directory path')
+io_params.add_argument("-d", "--data_specs", dest='data_specs_file', type=str, required=False,
+	help='Path to data specifications file')
+io_params.add_argument("-m", "--model_specs", dest='model_specs_file', type=str, required=False,
+	help='Path to model specifications file')
+
+
+def main(): 
+
+	args = parser.parse_args()
+
+	output_dir = args.output_dir
+	data_specs_file = args.data_specs_file
+	model_specs_file = args.model_specs_file
+
+	if data_specs_file is None: data_specs_file = os.path.join(output_dir, "data_specs.json")
+	if model_specs_file is None: model_specs_file = os.path.join(output_dir, "model_specs.json")
+
+	eval = Evaluate(output_dir, data_specs_file, model_specs_file)
+
+	eval.initialize_data()
+	
+	for model_params in eval.model_paramlist: 
+		eval.run_grid(model_params)
+
+
+if __name__ == "__main__": 
+	main()

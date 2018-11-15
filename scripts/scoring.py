@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
+# Python external libraries
 import numpy as np
 from scipy import stats
 
 
 # These functions are used to score model results against known results
-
 
 def recovery_relevance(model, known): 
 
