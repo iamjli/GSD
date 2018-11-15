@@ -9,6 +9,10 @@ from scipy import stats
 
 def recovery_relevance(model, known): 
 
+	# If path, load data
+	if isinstance(model, str): model = np.load(model)
+	if isinstance(known, str): known = np.load(known)
+
 	# If signal value is non-zero, assign to 1
 	supp1 = (model != 0).astype(float)
 	supp2 = (known != 0).astype(float) 
@@ -39,6 +43,10 @@ def precision_recall(model, known):
 	## This function needs to be verified for accuracy. 
 
 	## TODO: Could potentially be optimized by removing all nan values first.
+	
+	# If path, load data
+	if isinstance(model, str): model = np.load(model)
+	if isinstance(known, str): known = np.load(known)
 
 	# If signal value is non-zero, assign to 1
 	supp1 = (model != 0).astype(float)

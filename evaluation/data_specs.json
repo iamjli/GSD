@@ -3,8 +3,8 @@
 	"source_sampler_method": "random_walk_fixed_size", 
 	"loading_sampler_method": "uniform", 
 	"grid": {
-		"n_sources": [ 10 ], 
-		"size": [ 500 ], 
+		"n_sources": [ 5, 10, 25 ], 
+		"size": [ 100, 500 ], 
 		"n_samples": [ 20, 100, 500 ], 
 		"noise": [ 0, 0.2, 0.4, 0.6, 0.8, 1.0 ],
 		"rep": [ 1, 2, 3 ]

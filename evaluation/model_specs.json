@@ -2,7 +2,7 @@
 	{
 		"method": "ICA1",
 		"grid": {
-			"cutoff": [ 0.01 ], 
+			"cutoff": [ 0.01 , 0.001, 0.0001], 
 			"n_components": [ 10 ]
 		}
 	}, 

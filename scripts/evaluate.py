@@ -19,7 +19,7 @@ import argparse
 # Internal modules
 from samplers import SourceSampler, LoadingSampler
 from models import save_results, get_model_tag
-# from scoring import recovery_relevance, precision_recall
+from scoring import recovery_relevance, precision_recall
 
 
 logger = logging.getLogger(__name__)
@@ -71,6 +71,18 @@ class Evaluate:
 
 		with multiprocessing.Pool(n_cpus) as pool: 
 			pool.starmap(partial(save_results, model_params=model_param), io_paths)
+
+
+	def score_results(self, model_params): 
+
+		results_dir = os.path.join(self.home_dir, "results", get_model_tag(**model_param))
+		results_paths = [ (os.paths.join(results_dir, self._data_tag(p)), self._Z_path(p)) for p in self.data_paramlist ]
+
+		# Populates a list with scores in the same order as `self.data_paramlist`.
+		with multiprocessing.Pool(n_cpus) as pool: 
+			scores = pool.starmap(recovery_relevance, results_paths)
+
+		return scores 
 
 
 	def initialize_data(self):
@@ -150,7 +162,7 @@ def main():
 	eval = Evaluate(output_dir, data_specs_file, model_specs_file)
 
 	eval.initialize_data()
-	
+
 	for model_params in eval.model_paramlist: 
 		eval.run_grid(model_params)
 
