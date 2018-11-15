@@ -1,19 +1,18 @@
 [
 	{
-		"name": "ica1",
-		"param_grid": {
-			"graph": [ "../data/interactomes/STRING_v10.5.experimental.costs_adj_g4.gpickle" ],
+		"method": "ICA1",
+		"grid": {
 			"cutoff": [ 0.01 ], 
 			"n_components": [ 10 ]
 		}
 	}, 
 	{
-		"name": "gsd", 
-		"param_grid": { 
+		"method": "GSD", 
+		"grid": { 
 			"graph": [ "../data/interactomes/STRING_v10.5.experimental.costs_adj_g4.gpickle" ], 
 			"a": [ 0.1 ], 
 			"n_components": [ 10 ], 
-			"n_iteractions": [ 5 ], 
+			"n_iterations": [ 5 ], 
 			"initializer": [ "ica" ]
 		}
 	}

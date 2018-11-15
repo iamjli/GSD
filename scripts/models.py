@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+import os
+import logging
+from functools import partial
+
 # Data processing
 import pandas as pd
 import numpy as np
@@ -7,6 +11,79 @@ import numpy as np
 from sklearn.decomposition import FastICA
 from scipy import stats
 
+from gsd import GSD
+
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+handler.setLevel(logging.INFO)
+handler.setFormatter(logging.Formatter('%(asctime)s - Models: %(levelname)s - %(message)s', "%I:%M:%S"))
+logger.addHandler(handler)
+
+
+def get_model(method, **params): 
+	if method == "ICA1": 
+		func = partial(ICA1, **params)
+	elif method == "GSD": 
+		func = partial(run_GSD, **params)
+	else: 
+		pass
+
+	return func
+
+def get_model_tag(method, **params): 
+
+	if method == "ICA1":
+		tag = "ICA1_{n_components}_{cutoff}".format(**params)
+	elif method == "GSD": 
+		tag = "GSD_{a}_{n_components}_{initializer}".format(**params)
+	else: 
+		pass
+
+	return tag
+
+
+def save_results(X_path, out_path, model_params):
+
+	if os.path.exists(out_path): 
+		logger.info("Results have already been generated: {}".format(out_path))
+		return 
+
+	os.makedirs(os.path.dirname(out_path), exist_ok=True)
+
+	X = np.load(X_path)
+	
+	method = model_params.pop("method", None)
+	
+	if method == "ICA1": 
+		results = ICA1(X, **model_params)
+
+	elif method == "GSD": 
+
+		results = run_GSD(X, **model_params)
+
+	else:
+		pass
+
+	np.save(out_path, results)
+
+
+##### GSD ########
+
+def run_GSD(X, n_iterations, **params): 
+	
+	gsd = GSD(X, **params)
+	
+	for _ in range(n_iterations): 
+		for i in range(gsd.n_components): 
+			gsd.update(i)
+			
+	return gsd.components
+
+
+##### BENCHMARKS ########
 
 def _significant_weights(component, cutoff, mode='all'):
 	"""
@@ -16,7 +93,7 @@ def _significant_weights(component, cutoff, mode='all'):
 	z_scores = stats.zscore(component)
 
 	# Get p-values for each z-score from a 2-tailed distribution
-	if   mode == 'all':      p_vals = stats.norm.sf(abs(z_scores)) * 2
+	if   mode == 'all':		 p_vals = stats.norm.sf(abs(z_scores)) * 2
 	elif mode == 'positive': p_vals = stats.norm.sf(z_scores.clip(min=0)) * 2
 	elif mode == 'negative': p_vals = stats.norm.sf((-z_scores).clip(min=0)) * 2
 	else: pass
