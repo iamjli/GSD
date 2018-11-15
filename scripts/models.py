@@ -126,3 +126,29 @@ def ICA2(X, cutoff, n_components):
 	neg_out = [ _significant_weights(source, cutoff, mode='negative') for source in sources ]
 	out = pos_out + neg_out
 	return np.array(out)
+
+
+import community
+
+def louvain_clustering(X, graph, cutoff): 
+	"""
+	Clusters an input graph into communities, then scores each comminity based on scores within data matrix.
+	After normalizing for community size, top components are chosen from components with significant variation. 
+	"""
+
+	# Import as networkx object if path is provided
+	if isinstance(graph, str): graph = nx.read_gpickle(graph)
+
+	communities = community.best_partition(graph, weight="confidence")
+	one_hot = pd.get_dummies(pd.Series(communities)).reindex(graph.nodes).values
+
+	# Normalize projection by size of module
+	projected_norm = np.divide(X.dot(one_hot), one_hot.sum(axis=0))
+	variances = projected_norm.var(axis=0)
+	# Get p-values from distribution
+	z_scores = stats.zscore(variances)
+	p_vals = stats.norm.sf(abs(z_scores)) * 2
+
+	# Get significant components
+	return one_hot.T[ p_vals < cutoff ]
+
