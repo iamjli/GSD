@@ -1,29 +1,13 @@
 #!/usr/bin/env python3
 
 """
-
-This file contains different methods to sample source signals from a protein network (interactome). 
-
-
-Eventually may be best implemented as a class: 
-
-Args: 
-	graph: networkx object
-	kwargs: attributes like signal size
-
-Functions: 
-	Samplers: 
-		test
-		...
-
-	Return sampler functions potentially with arguments partially filled
+This file contains different methods to sample signals from a protein network (interactome) as well as 
+loadings matrices. 
 
 """
 
-
 import numpy as np
 import pandas as pd
-
 import networkx as nx
 
 

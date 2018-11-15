@@ -35,43 +35,30 @@ n_cpus = multiprocessing.cpu_count()
 
 class Evaluate:
 
-	def __init__(self, home_dir, data_param_path, model_param_path, params=dict()): 
+	def __init__(self, home_dir, data_specs_path, model_specs_path, params=dict()): 
 
 		self.home_dir = home_dir
-		self.data_param_path = data_param_path
-		self.model_param_path = model_param_path
+		self.data_specs_path = data_specs_path
+		self.model_specs_path = model_specs_path
 
+		# Directory names for source, loading, and data matrix files.
 		self.D_dir = os.path.join(self.home_dir, "data", "sources")
 		self.Z_dir = os.path.join(self.home_dir, "data", "loadings")
 		self.X_dir = os.path.join(self.home_dir, "data", "data_matrices")
 
-		os.makedirs(self.D_dir, exist_ok=True)
-		os.makedirs(self.Z_dir, exist_ok=True)
-		os.makedirs(self.X_dir, exist_ok=True)
+		# Load data and model parameter specifications
+		with open(self.data_specs_path) as f:  self.data_specs  = json.load(f)
+		with open(self.model_specs_path) as f: self.model_specs = json.load(f)
 
+		# Iterators for data and model parameters
+		self.data_paramlist = ParameterGrid(self.data_specs['grid'])
+		# For each model method, create parameter dict from each parameter grid.
+		self.model_paramlist = [ { **p, 'method':model_attr['method'] } for model_attr in self.model_specs for p in ParameterGrid(model_attr['grid']) ]
 
-		with open(self.data_param_path) as f:  self.data_params = json.load(f)
-		with open(self.model_param_path) as f: self.models_params = json.load(f)
-
-		self.data_paramlist = ParameterGrid(self.data_params['grid'])
-		self.model_paramlist = [ {**p, "method":model_attr['method']} for model_attr in self.models_params for p in ParameterGrid(model_attr['grid']) ]
-
-		# self.initialize_data()
-
-
-		# Loop through all models, run and evaluate and save results for each param
-
-	def _data_tag(self, param): 
-		return "{n_samples}_{n_sources}_{noise}_{size}_{rep}.npy".format(**param)
-
-	def _D_path(self, param): 
-		return os.path.join(self.D_dir, "{n_sources}_{size}_{rep}.npy".format(**param))
-
-	def _Z_path(self, param):
-		return os.path.join(self.Z_dir, "{n_samples}_{n_sources}_{rep}.npy".format(**param))
-
-	def _X_path(self, param): 
-		return os.path.join(self.X_dir, self._data_tag(param))
+		self._data_tag = lambda param: "{n_samples}_{n_sources}_{noise}_{size}_{rep}.npy".format(**param)
+		self._D_path = lambda param: os.path.join(self.D_dir, "{n_sources}_{size}_{rep}.npy".format(**param))
+		self._Z_path = lambda param: os.path.join(self.Z_dir, "{n_samples}_{n_sources}_{rep}.npy".format(**param))
+		self._X_path = lambda param: os.path.join(self.X_dir, self._data_tag(param))
 
 
 	def run_grid(self, model_param): 
@@ -86,10 +73,16 @@ class Evaluate:
 
 	def initialize_data(self):
 
-		source_sampler  = SourceSampler(self.data_params['graph'], self.data_params['source_sampler_method'])
-		loading_sampler = LoadingSampler(self.data_params['loading_sampler_method'])
+		# 
 
-		for param in ParameterGrid(self.data_params['grid']): 
+		os.makedirs(self.D_dir, exist_ok=True)
+		os.makedirs(self.Z_dir, exist_ok=True)
+		os.makedirs(self.X_dir, exist_ok=True)
+
+		source_sampler  = SourceSampler(self.data_specs['graph'], self.data_specs['source_sampler_method'])
+		loading_sampler = LoadingSampler(self.data_specs['loading_sampler_method'])
+
+		for param in ParameterGrid(self.data_specs['grid']): 
 
 			D_path = self._D_path(param)
 			Z_path = self._Z_path(param)

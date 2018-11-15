@@ -23,26 +23,6 @@ handler.setFormatter(logging.Formatter('%(asctime)s - Models: %(levelname)s - %(
 logger.addHandler(handler)
 
 
-def get_model(method, **params): 
-	if method == "ICA1": 
-		func = partial(ICA1, **params)
-	elif method == "GSD": 
-		func = partial(run_GSD, **params)
-	else: 
-		pass
-
-	return func
-
-def get_model_tag(method, **params): 
-
-	if method == "ICA1":
-		tag = "ICA1_{n_components}_{cutoff}".format(**params)
-	elif method == "GSD": 
-		tag = "GSD_{a}_{n_components}_{initializer}".format(**params)
-	else: 
-		pass
-
-	return tag
 
 
 def save_results(X_path, out_path, model_params):
@@ -51,26 +31,46 @@ def save_results(X_path, out_path, model_params):
 		logger.info("Results have already been generated: {}".format(out_path))
 		return 
 
-	os.makedirs(os.path.dirname(out_path), exist_ok=True)
-
 	X = np.load(X_path)
 	
 	method = model_params.pop("method", None)
-	
 	if method == "ICA1": 
 		results = ICA1(X, **model_params)
 
 	elif method == "GSD": 
-
 		results = run_GSD(X, **model_params)
 
 	else:
 		pass
 
+	os.makedirs(os.path.dirname(out_path), exist_ok=True)
 	np.save(out_path, results)
+	logger.info("Run complete, results written to: {}".format(out_path))
 
 
-##### GSD ########
+def get_model(method, **params): 
+
+	if method == "ICA1": 
+		func = partial(ICA1, **params)
+	elif method == "GSD": 
+		func = partial(run_GSD, **params)
+	else: 
+		logger.warn("No models found with method {}".format(method))
+	return func
+
+
+def get_model_tag(method, **params): 
+
+	if method == "ICA1":
+		tag = "ICA1_{n_components}_{cutoff}".format(**params)
+	elif method == "GSD": 
+		tag = "GSD_{a}_{n_components}_{initializer}".format(**params)
+	else: 
+		logger.warn("No models found with method {}".format(method))
+	return tag
+
+
+######## GSD ########
 
 def run_GSD(X, n_iterations, **params): 
 	
@@ -83,7 +83,7 @@ def run_GSD(X, n_iterations, **params):
 	return gsd.components
 
 
-##### BENCHMARKS ########
+######## BENCHMARKS ########
 
 def _significant_weights(component, cutoff, mode='all'):
 	"""
