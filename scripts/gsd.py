@@ -90,6 +90,12 @@ class GSD:
 		"""Gets component supports."""
 		return (self.components != 0).astype(int)
 
+	def steiner_supports(self): 
+		"""Gets components that may contain Steiner nodes."""
+		indices = [ np.unique(self._edges_pcst[edges]) for edges in self.tree_edges ]
+		out = np.array([[ 1 if x in arr else 0 for x in range(self.n_features) ] for arr in indices])
+		return out
+
 
 	########  DICTIONARY LEARNING  ########
 
@@ -153,6 +159,9 @@ class GSD:
 				prizes[ optimal_D_i < 0 ] = 0
 			else: 
 				prizes[ optimal_D_i > 0 ] = 0
+
+		# In theory, prizes should be non-negative but we clip in case of floating point errors
+		prizes = prizes.clip(min=0) 
 
 		node_indices, edge_indices = self._pcst(prizes, self.edge_cost)
 
