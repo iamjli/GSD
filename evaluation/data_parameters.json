@@ -1,0 +1,12 @@
+{
+	"source_sampler": "random_walk_fixed_size", 
+	"loading_sampler": "uniform", 
+	"graph": "../data/interactomes/STRING_v10.5.experimental.costs_adj_g4.gpickle",
+	"param_grid": {
+		"size": [500], 
+		"n_sources": [10], 
+		"n_samples": [20, 100, 500], 
+		"noise": [0, 0.2, 0.4, 0.6, 0.8, 1.0],
+		"rep": [1, 2, 3]
+	}
+}

@@ -24,6 +24,8 @@ Functions:
 import numpy as np
 import pandas as pd
 
+import networkx as nx
+
 
 def gene_list_to_boolean_signal(graph, gene_list): 
 	# Each gene in gene_list is assigned a value 1, the rest are assigned 0
@@ -31,9 +33,12 @@ def gene_list_to_boolean_signal(graph, gene_list):
 	return signal_series.values
 
 
-########  SAMPLERS  ########
+########  SOURCE SAMPLERS  ########
 
 def sample_test(graph, size): 
+
+	# Import as networkx object if path is provided
+	if isinstance(graph, str): graph = nx.read_gpickle(graph)
 
 	# Sample nodes without replacement
 	random_nodes = np.random.choice(graph.nodes, size, replace=False) 
@@ -42,6 +47,9 @@ def sample_test(graph, size):
 
 
 def sample_random_walk_fixed_size(graph, size): 
+
+	# Import as networkx object if path is provided
+	if isinstance(graph, str): graph = nx.read_gpickle(graph)
 
 	# Beginning with a random node, randomly sample until the number of visited nodes is reaches specified
 	visited_nodes = list(np.random.choice(graph, 1))
@@ -60,6 +68,9 @@ def sample_random_walk_fixed_size(graph, size):
 
 def sample_random_walk_fixed_iters(graph, iters):
 
+	# Import as networkx object if path is provided
+	if isinstance(graph, str): graph = nx.read_gpickle(graph)
+
 	# Beginning with a random node, sample according to random walk and report nodes visited after a specified number of iterations
 	visited_nodes = list(np.random.choice(graph, 1))
 	current_node = visited_nodes[0]
@@ -74,3 +85,10 @@ def sample_random_walk_fixed_iters(graph, iters):
 			visited_nodes.append(current_node)
 
 	return gene_list_to_boolean_signal(graph, visited_nodes)
+
+
+########  LOADINGS SAMPLERS  ########
+
+def sample_uniform_loadings(n_samples, n_sources):
+
+	return np.random.rand(n_samples, n_sources)
