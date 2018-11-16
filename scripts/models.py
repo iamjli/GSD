@@ -24,7 +24,7 @@ handler.setFormatter(logging.Formatter('%(asctime)s - Models: %(levelname)s - %(
 logger.addHandler(handler)
 
 
-def save_results(X_path, out_path, model_params):
+def save_results(X_path, out_path, method, **model_params):
 
 	if os.path.exists(out_path): 
 		logger.info("Results have already been generated: {}".format(out_path))
@@ -32,7 +32,6 @@ def save_results(X_path, out_path, model_params):
 
 	X = np.load(X_path)
 	
-	method = model_params.pop("method", None)
 	if method == "ICA1": 
 		results = ICA1(X, **model_params)
 
@@ -40,7 +39,7 @@ def save_results(X_path, out_path, model_params):
 		results = run_GSD(X, **model_params)
 
 	else:
-		pass
+		logger.warn("How'd I get here? Method: {} Params: {}".format(method, model_params))
 
 	os.makedirs(os.path.dirname(out_path), exist_ok=True)
 	np.save(out_path, results)

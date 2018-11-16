@@ -70,7 +70,7 @@ class Evaluate:
 		io_paths = [ (self._X_path(p), os.path.join(results_dir, self._data_tag(p))) for p in self.data_paramlist]
 
 		with multiprocessing.Pool(n_cpus) as pool: 
-			pool.starmap(partial(save_results, model_params=model_param), io_paths)
+			pool.starmap(partial(save_results, **model_param), io_paths)
 
 
 	def score_results(self, model_params): 
