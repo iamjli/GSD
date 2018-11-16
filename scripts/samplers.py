@@ -88,6 +88,7 @@ class LoadingSampler:
 	def sample(self, n_samples, n_sources, **kwargs): 
 
 		if self.method == 'uniform': 
-
 			return np.random.rand(n_samples, n_sources)
 
+		if self.method == 'uniform_full': 
+			return np.random.uniform(low=-1, high=1, size=(n_samples, n_sources))
