@@ -54,10 +54,14 @@ class Evaluate:
 		# For each model method, create parameter dict from each parameter grid.
 		self.model_paramlist = [ { **p, 'method':model_attr['method'] } for model_attr in self.model_specs for p in ParameterGrid(model_attr['grid']) ]
 
+		# Sampler objects for generating source and loading matrices as well as their tags.
+		self.source_sampler  = SourceSampler(self.data_specs['graph'], self.data_specs['source_sampler_method'])
+		self.loading_sampler = LoadingSampler(self.data_specs['loading_sampler_method'])
+
 		# Get path from parameters
-		self._data_tag = lambda param: "{n_samples}_{n_sources}_{noise}_{size}_{rep}.npy".format(**param)
-		self._D_path   = lambda param: os.path.join(self.D_dir, "{n_sources}_{size}_{rep}.npy".format(**param))
-		self._Z_path   = lambda param: os.path.join(self.Z_dir, "{n_samples}_{n_sources}_{rep}.npy".format(**param))
+		self._data_tag = lambda param: "D_{}_Z_{}.npy".format(self.source_sampler.tag(**param), self.loading_sampler.tag(**param))
+		self._D_path   = lambda param: os.path.join(self.D_dir, self.source_sampler.tag(**param) + ".npy")
+		self._Z_path   = lambda param: os.path.join(self.Z_dir, self.loading_sampler.tag(**param) + ".npy")
 		self._X_path   = lambda param: os.path.join(self.X_dir, self._data_tag(param))
 
 
@@ -73,14 +77,17 @@ class Evaluate:
 			pool.starmap(partial(save_results, **model_param), io_paths)
 
 
-	def score_results(self, model_params): 
+	def score_results(self, model_param): 
 
-		results_dir = os.path.join(self.home_dir, "results", get_model_tag(**model_param))
-		results_paths = [ (os.paths.join(results_dir, self._data_tag(p)), self._Z_path(p)) for p in self.data_paramlist ]
+		model_tag = get_model_tag(**model_param)
+		results_dir = os.path.join(self.home_dir, "results", model_tag)
+		results_paths = [ (os.path.join(results_dir, self._data_tag(p)), self._D_path(p)) for p in self.data_paramlist ]
 
 		# Populates a list with scores in the same order as `self.data_paramlist`.
 		with multiprocessing.Pool(n_cpus) as pool: 
 			scores = pool.starmap(recovery_relevance, results_paths)
+
+		scores = [ {**score, **param, "model":model_tag} for score,param in zip(*[ scores, self.data_paramlist ])]
 
 		return scores 
 
@@ -90,10 +97,6 @@ class Evaluate:
 		os.makedirs(self.D_dir, exist_ok=True)
 		os.makedirs(self.Z_dir, exist_ok=True)
 		os.makedirs(self.X_dir, exist_ok=True)
-
-		# Sampler objects for generating source and loading matrices
-		source_sampler  = SourceSampler(self.data_specs['graph'], self.data_specs['source_sampler_method'])
-		loading_sampler = LoadingSampler(self.data_specs['loading_sampler_method'])
 
 		for param in ParameterGrid(self.data_specs['grid']): 
 
@@ -105,14 +108,14 @@ class Evaluate:
 			if os.path.exists(D_path):
 				D = np.load(D_path)
 			else: 
-				D = source_sampler.sample(**param)
+				D = self.source_sampler.sample(**param)
 				np.save(D_path, D)
 
 			# Load loading matrix, or generate and save if file doesn't exist yet.
 			if os.path.exists(Z_path):
 				Z = np.load(Z_path)
 			else: 
-				Z = loading_sampler.sample(**param)
+				Z = self.loading_sampler.sample(**param)
 				np.save(Z_path, Z)
 
 			# Generate and save data matrix files.

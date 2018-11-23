@@ -22,16 +22,31 @@ class SourceSampler:
 
 		self.method = method
 
+	########  QUERIES  ########
 
 	def sample(self, n_sources, **params): 
 
 		if self.method == 'random_walk_fixed_size': 
 			source_matrix = np.array([ self._random_walk_fixed_size(size=params['size']) for _ in range(n_sources) ])
 
+		elif self.method == 'random_walk_fixed_iters': pass
+
+		else: pass
+
 		return source_matrix
 
+	def tag(self, **params): 
 
-	########  SAMPLERS  ########
+		if self.method == 'random_walk_fixed_size': 
+			tag = "{n_sources}_{size}_{rep}".format(**params)
+
+		elif self.method == 'random_walk_fixed_iters': pass
+
+		else: pass
+
+		return tag
+
+	########  HELPERS  ########
 
 	def _gene_list_to_boolean_signal(self, gene_list): 
 		# Each gene in gene_list is assigned a value 1, the rest are assigned 0
@@ -43,6 +58,8 @@ class SourceSampler:
 		random_nodes = np.random.choice(self.graph.nodes, size, replace=False) 
 
 		return self._gene_list_to_boolean_signal(random_nodes)
+
+	########  SAMPLERS  ########
 
 	def _random_walk_fixed_size(self, size): 
 
@@ -85,10 +102,34 @@ class LoadingSampler:
 
 		self.method = method
 
-	def sample(self, n_samples, n_sources, **kwargs): 
+	def sample(self, n_samples, n_sources, **params): 
 
 		if self.method == 'uniform': 
 			return np.random.rand(n_samples, n_sources)
 
-		if self.method == 'uniform_full': 
+		elif self.method == 'uniform_full': 
 			return np.random.uniform(low=-1, high=1, size=(n_samples, n_sources))
+
+		elif self.method == 'clusters': 
+			k_clusters = params['k_clusters']
+			scores = np.random.uniform(low=-1, high=1, size=(k_clusters, n_sources))
+
+			# Assigns samples to clusters into roughly equal sizes
+			cluster_assignments = (np.arange(n_samples) / n_samples * k_clusters).astype(int)
+			return scores[cluster_assignments]
+
+		else: pass
+
+	def tag(self, **params): 
+
+		if self.method == 'uniform': 
+			return "{n_samples}_{n_sources}_{rep}".format(**params)
+
+		elif self.method == 'uniform_full': 
+			return "{n_samples}_{n_sources}_{rep}".format(**params)
+
+		elif self.method == 'clusters': 
+			return "{n_samples}_{n_sources}_{k_clusters}_{rep}".format(**params)
+
+		else: 
+			return None 

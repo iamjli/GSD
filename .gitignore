@@ -3,6 +3,9 @@
 data
 papers
 
+# Experiments
+experiments
+
 # Personal
 **/sftp-config.json
 **/.DS_Store

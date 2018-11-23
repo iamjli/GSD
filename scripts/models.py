@@ -62,7 +62,7 @@ def get_model_tag(method, **params):
 	if method == "ICA1":
 		tag = "ICA1_{n_components}_{cutoff}".format(**params)
 	elif method == "GSD": 
-		tag = "GSD_{a}_{n_components}_{initializer}".format(**params)
+		tag = "GSD_{a}_{n_components}_{initializer}_{n_iterations}".format(**params)
 	else: 
 		logger.warn("No models found with method {}".format(method))
 	return tag
