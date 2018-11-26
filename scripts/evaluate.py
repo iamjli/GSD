@@ -97,7 +97,7 @@ class Evaluate:
 		scores = []
 
 		for model_params in self.model_paramlist: 
-			scores += e.score_results(model_params)
+			scores += self.score_results(model_params)
 			
 		scores_df = pd.DataFrame(scores)
 		
