@@ -92,6 +92,18 @@ class Evaluate:
 		return scores 
 
 
+	def get_scores_as_dataframe(self): 
+
+		scores = []
+
+		for model_params in self.model_paramlist: 
+			scores += e.score_results(model_params)
+			
+		scores_df = pd.DataFrame(scores)
+		
+		return scores_df
+
+
 	def initialize_data(self):
 
 		os.makedirs(self.D_dir, exist_ok=True)
