@@ -59,7 +59,7 @@ class Evaluate:
 		self.loading_sampler = LoadingSampler(self.data_specs['loading_sampler_method'])
 
 		# Get path from parameters
-		self._data_tag = lambda param: "D_{}_Z_{}.npy".format(self.source_sampler.tag(**param), self.loading_sampler.tag(**param))
+		self._data_tag = lambda param: "D_{}_Z_{}_noise_{}.npy".format(self.source_sampler.tag(**param), self.loading_sampler.tag(**param), param['noise'])
 		self._D_path   = lambda param: os.path.join(self.D_dir, self.source_sampler.tag(**param) + ".npy")
 		self._Z_path   = lambda param: os.path.join(self.Z_dir, self.loading_sampler.tag(**param) + ".npy")
 		self._X_path   = lambda param: os.path.join(self.X_dir, self._data_tag(param))
@@ -71,7 +71,7 @@ class Evaluate:
 
 		results_dir = os.path.join(self.home_dir, "results", get_model_tag(**model_param))
 		os.makedirs(results_dir, exist_ok=True)
-		io_paths = [ (self._X_path(p), os.path.join(results_dir, self._data_tag(p))) for p in self.data_paramlist]
+		io_paths = [ (self._X_path(p), os.path.join(results_dir, self._data_tag(p))) for p in self.data_paramlist ]
 
 		with multiprocessing.Pool(n_cpus) as pool: 
 			pool.starmap(partial(save_results, **model_param), io_paths)
@@ -87,7 +87,7 @@ class Evaluate:
 		with multiprocessing.Pool(n_cpus) as pool: 
 			scores = pool.starmap(recovery_relevance, results_paths)
 
-		scores = [ {**score, **param, "model":model_tag} for score,param in zip(*[ scores, self.data_paramlist ])]
+		scores = [ {**score, **param, "model":model_tag} for score,param in zip(*[ scores, self.data_paramlist ]) ]
 
 		return scores 
 

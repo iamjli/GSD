@@ -110,13 +110,20 @@ class LoadingSampler:
 		elif self.method == 'uniform_full': 
 			return np.random.uniform(low=-1, high=1, size=(n_samples, n_sources))
 
-		elif self.method == 'clusters': 
-			k_clusters = params['k_clusters']
-			scores = np.random.uniform(low=-1, high=1, size=(k_clusters, n_sources))
+		elif self.method == 'k_clusters': 
+			scores = np.random.uniform(low=-1, high=1, size=(params['k_clusters'], n_sources))
 
 			# Assigns samples to clusters into roughly equal sizes
-			cluster_assignments = (np.arange(n_samples) / n_samples * k_clusters).astype(int)
+			cluster_assignments = (np.arange(n_samples) / n_samples * params['k_clusters']).astype(int)
 			return scores[cluster_assignments]
+
+		elif self.method == 'k_noisy_clusters': 
+			scores = np.random.uniform(low=-1, high=1, size=(params['k_clusters'], n_sources))
+
+			# Assigns samples to clusters into roughly equal sizes
+			cluster_assignments = (np.arange(n_samples) / n_samples * params['k_clusters']).astype(int)
+			# Return noisy scores
+			return np.random.normal(scores[cluster_assignments], params['cluster_noise'] ** 0.5)
 
 		else: pass
 
@@ -128,8 +135,11 @@ class LoadingSampler:
 		elif self.method == 'uniform_full': 
 			return "{n_samples}_{n_sources}_{rep}".format(**params)
 
-		elif self.method == 'clusters': 
+		elif self.method == 'k_clusters': 
 			return "{n_samples}_{n_sources}_{k_clusters}_{rep}".format(**params)
+
+		elif self.method == 'k_noisy_clusters': 
+			return "{n_samples}_{n_sources}_{k_clusters}_{cluster_noise}_{rep}".format(**params)
 
 		else: 
 			return None 
