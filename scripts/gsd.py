@@ -11,7 +11,7 @@ import pandas as pd
 import numpy as np
 import networkx as nx
 from scipy import stats
-from sklearn.decomposition import FastICA
+from sklearn.decomposition import PCA, FastICA
 
 # Lab modules
 from pcst_fast import pcst_fast
@@ -54,6 +54,8 @@ class GSD:
 			self.components, self.scores = self._ica_initializer()
 		elif initializer == 'random': 
 			self.components, self.scores = self._random_initializer()
+		elif initializer == 'zeros': 
+			self.components, self.scores = self._zero_initializer()
 		else: 
 			logger.warn("Initializer must be set to `random` or `ica`.")
 
@@ -99,7 +101,7 @@ class GSD:
 
 	########  DICTIONARY LEARNING  ########
 
-	def update(self, i, same_sign=True): 
+	def update(self, i, method='gsPCA', same_sign=True): 
 		"""
 		Updates component and scores matrix together along with associated tree_edgelist and model metrics
 
@@ -121,7 +123,8 @@ class GSD:
 		# Check if new component is too small or only one element, then remove. 
 		# TODO
 
-	def _update_component(self, i, D, Z, same_sign=True): 
+
+	def _update_component(self, i, D, Z, method='gsPCA', same_sign=True): 
 		"""
 		Updates component i of dictionary D while fixing the rest of the components and scores Z to be constant.
 
@@ -144,10 +147,16 @@ class GSD:
 		# Get residual with component i held out
 		X_res = self.X - np.dot(np.delete(Z, i, axis=1), np.delete(D, i, axis=0))
 
-		# Calculate optimal D_i via least squares estimation (in other words, what's the 
-		# best component assuming no sparsity constraint)
-		Z_i = Z[:,i]
-		optimal_D_i = np.dot(Z_i, Z_i) ** (-1) * np.dot(Z_i, X_res)
+		if method == 'dict_learning': 
+			# Calculate optimal D_i via least squares estimation (in other words, what's the 
+			# best component assuming no sparsity constraint)
+			Z_i = Z[:,i]
+			optimal_D_i = np.dot(Z_i, Z_i) ** (-1) * np.dot(Z_i, X_res)
+		elif method == 'gsPCA': 
+			# Model component after graph-sparse PC1
+			pca = PCA(n_components=1)
+			Z_i = pca.fit_transform(X_res).T[0]
+			optimal_D_i = pca.components_[0]
 
 		# Assign prizes to be the amount of error saved by including a node in the component tree. 
 		# This is calculated by taking the difference in mean reconstruction error with and without the node.
@@ -165,14 +174,26 @@ class GSD:
 
 		node_indices, edge_indices = self._pcst(prizes, self.edge_cost)
 
+		if len(node_indices) <= 1: 
+			logger.warn("Component {} is deprecated!")
+
 		# Replace component i with sparsified optimal D_i component specified by PCST results
 		D[i] = np.array([ optimal_D_i[i] if i in node_indices else 0 for i in range(self.n_features) ])
 
 		return D, edge_indices
 
+
 	def _update_scores(self, D): 
 		"""Updates scores matrix by fixing dictionary D."""
-		return self._OLS(self.X, D)
+
+		# Component row indices that are not empty
+		nonempty_indices = np.where(D.any(axis=1))[0]
+
+		# For components that are nonempty, set values using OLS. Otherwise, set values to 0. 
+		scores = np.zeros( shape=(self.n_samples, self.n_components) )
+		scores[:,nonempty_indices] = self._OLS(self.X, D[nonempty_indices])
+
+		return scores
 
 	def _OLS(self, X, D):
 		"""
@@ -205,7 +226,7 @@ class GSD:
 		# Total cost of edges for all trees
 		tree_cost = sum([ sum(self.edge_cost[edges]) for edges in tree_edges ])
 		# Reconstruction error
-		error = ((self.X - Z.dot(D)) ** 2).sum()
+		error = ((self.X - Z.dot(D)) ** 2).sum() / self.n_samples
 		# Objective score
 		objective = error + tree_cost
 		
@@ -223,6 +244,15 @@ class GSD:
 		return components, scores
 
 
+	def _zero_initializer(self): 
+		"""Initializes dictionary and scores matrices randomly."""
+		components = np.zeros( shape=(self.n_components, self.n_features) ) 
+		scores     = self._update_scores( components ) # (n_samples, n_components)
+		logger.info("Initialized components and scores randomly.")
+		
+		return components, scores
+
+
 	def _ica_initializer(self): 
 		"""Initializes dictionary and scores matrices with independent component analysis (ICA)."""
 		ica = FastICA(n_components=self.n_components)
@@ -232,4 +262,12 @@ class GSD:
 		logger.info("Initialized components and scores via ICA.")
 
 		return sources, mixing
+
+
+	########  CONVENIENCE  ########
+
+	def log_objectives(self): 
+
+		# logger.info("{0:.2f}\t{0:.2f}\t{0:.2f}".format(self.objective, self.error, self.tree_cost))
+		logger.info("{}\t{}\t{}".format(int(self.objective), int(self.error), int(self.tree_cost)))
 
