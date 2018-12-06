@@ -109,7 +109,7 @@ class GSD:
 			i (int): component index
 			same_sign (bool): if True, component values must be all positive or all negative
 		"""
-		new_D, new_tree_i = self._update_component(i, self.components, self.scores, same_sign=same_sign)
+		new_D, new_tree_i = self._update_component(i, self.components, self.scores, method=method, same_sign=same_sign)
 		new_Z = self._update_scores(new_D)
 
 		# Check if updated matrices improve upon objective.
@@ -175,7 +175,7 @@ class GSD:
 		node_indices, edge_indices = self._pcst(prizes, self.edge_cost)
 
 		if len(node_indices) <= 1: 
-			logger.warn("Component {} is deprecated!")
+			logger.warn("Component {} is deprecated!".format(i))
 
 		# Replace component i with sparsified optimal D_i component specified by PCST results
 		D[i] = np.array([ optimal_D_i[i] if i in node_indices else 0 for i in range(self.n_features) ])
@@ -248,7 +248,7 @@ class GSD:
 		"""Initializes dictionary and scores matrices randomly."""
 		components = np.zeros( shape=(self.n_components, self.n_features) ) 
 		scores     = self._update_scores( components ) # (n_samples, n_components)
-		logger.info("Initialized components and scores randomly.")
+		logger.info("Initialized components and scores with zeros.")
 		
 		return components, scores
 
