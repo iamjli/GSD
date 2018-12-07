@@ -158,16 +158,18 @@ class GSD:
 			Z_i = pca.fit_transform(X_res).T[0]
 			optimal_D_i = pca.components_[0]
 
+		# Ensures that component has positive skew (easier for component interpretation)
+		if stats.skew(optimal_D_i) < 0: 
+			optimal_D_i *= -1
+			Z_i *= -1
+
 		# Assign prizes to be the amount of error saved by including a node in the component tree. 
 		# This is calculated by taking the difference in mean reconstruction error with and without the node.
 		prizes = (X_res ** 2).mean(axis=0) - ((X_res - np.outer(Z_i, optimal_D_i)) ** 2).mean(axis=0)
 
 		if same_sign: 
 			# Require values within each component to have the same sign by setting values of the opposite sign to 0.
-			if stats.skew(optimal_D_i) > 0:
-				prizes[ optimal_D_i < 0 ] = 0
-			else: 
-				prizes[ optimal_D_i > 0 ] = 0
+			prizes[ optimal_D_i < 0 ] = 0
 
 		# In theory, prizes should be non-negative but we clip in case of floating point errors
 		prizes = prizes.clip(min=0) 
@@ -270,4 +272,21 @@ class GSD:
 
 		# logger.info("{0:.2f}\t{0:.2f}\t{0:.2f}".format(self.objective, self.error, self.tree_cost))
 		logger.info("{}\t{}\t{}".format(int(self.objective), int(self.error), int(self.tree_cost)))
+
+
+	def output_normalized_decomposition(self, sample_labels, gene_labels): 
+
+	    scale_components = (self.components ** 2).sum(axis=1) ** 0.5
+	    normalized_components = self.components * np.expand_dims(1/scale_components, axis=1)
+	    normalized_components = pd.DataFrame(normalized_components, columns=gene_labels)
+
+	    scale_scores = (self.scores ** 2).sum(axis=0) ** 0.5
+	    normalized_scores = self.scores * np.expand_dims(1/scale_scores, axis=0)
+	    normalized_scores = pd.DataFrame(normalized_scores, index=sample_labels)
+
+	    singular_values = scale_components * scale_scores
+
+	    # X ~ (normalized_scores * singular_values).dot(normalized_components)
+
+	    return normalized_scores, singular_values, normalized_components
 
