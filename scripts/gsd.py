@@ -98,6 +98,11 @@ class GSD:
 		out = np.array([[ 1 if x in arr else 0 for x in range(self.n_features) ] for arr in indices])
 		return out
 
+	def component_genes(self, i): 
+
+		indices = np.unique(self._edges_pcst[self.tree_edges[i]])
+		return self._to_genes(indices)
+
 
 	########  DICTIONARY LEARNING  ########
 
