@@ -88,21 +88,6 @@ class GSD:
 		"""Returns edge costs scaled by `a`."""
 		return self.a * np.array([ cost for _,_,cost in self.graph.edges.data('cost') ])
 
-	def supports(self): 
-		"""Gets component supports."""
-		return (self.components != 0).astype(int)
-
-	def steiner_supports(self): 
-		"""Gets components that may contain Steiner nodes."""
-		indices = [ np.unique(self._edges_pcst[edges]) for edges in self.tree_edges ]
-		out = np.array([[ 1 if x in arr else 0 for x in range(self.n_features) ] for arr in indices])
-		return out
-
-	def component_genes(self, i): 
-
-		indices = np.unique(self._edges_pcst[self.tree_edges[i]])
-		return self._to_genes(indices)
-
 
 	########  DICTIONARY LEARNING  ########
 
@@ -177,6 +162,7 @@ class GSD:
 			prizes[ optimal_D_i < 0 ] = 0
 
 		# In theory, prizes should be non-negative but we clip in case of floating point errors
+		# prizes[ abs(prizes) < 1e-8 ] = 0
 		prizes = prizes.clip(min=0) 
 
 		node_indices, edge_indices = self._pcst(prizes, self.edge_cost)
@@ -186,6 +172,7 @@ class GSD:
 
 		# Replace component i with sparsified optimal D_i component specified by PCST results
 		D[i] = np.array([ optimal_D_i[i] if i in node_indices else 0 for i in range(self.n_features) ])
+		D[i][ abs(D[i]) < 1e-8 ] = 0
 
 		return D, edge_indices
 
@@ -272,6 +259,36 @@ class GSD:
 
 
 	########  CONVENIENCE  ########
+
+
+	def supports(self): 
+		"""Gets component supports."""
+		return (self.components != 0).astype(int)
+
+
+	def steiner_supports(self): 
+		"""Gets components that may contain Steiner nodes."""
+		indices = [ np.unique(self._edges_pcst[edges]) for edges in self.tree_edges ]
+		out = np.array([[ 1 if x in arr else 0 for x in range(self.n_features) ] for arr in indices])
+		return out
+
+
+	def component_genes(self, i): 
+
+		indices = np.unique(self._edges_pcst[self.tree_edges[i]])
+		return self._to_genes(indices)
+
+
+	def component_graph(self, i): 
+
+		component_edges = np.array(self.graph.edges)[self.tree_edges[i]]
+		component_graph = self.graph.edge_subgraph([tuple(edge) for edge in component_edges]).copy()
+
+		if "DUMMY" in component_graph.nodes: 
+			component_graph.remove_node("DUMMY")
+
+		return component_graph
+
 
 	def log_objectives(self): 
 

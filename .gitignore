@@ -4,8 +4,7 @@ data
 papers
 
 # Experiments
-_protein_experiments
-_chromatin_experiments
+_*/
 
 # Personal
 **/sftp-config.json
