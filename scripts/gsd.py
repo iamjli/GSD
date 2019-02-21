@@ -25,7 +25,7 @@ handler.setFormatter(logging.Formatter('%(asctime)s - GSD: %(levelname)s - %(mes
 logger.addHandler(handler)
 
 
-n_cpus = multiprocessing.cpu_count()
+# n_cpus = multiprocessing.cpu_count()
 
 
 class Options(object):
@@ -33,6 +33,7 @@ class Options(object):
 		self.__dict__.update(options)
 	def __repr__(self):
 		return dict(self.__dict__)
+
 
 class GSD:
 
@@ -265,12 +266,21 @@ class GSD:
 		return objective, error, D_edges
 
 
-	def steiner_supports(self): 
+	def steiner_support_df(self): 
 		"""Gets components that may contain Steiner nodes."""
 		supports = np.zeros(shape=(self.n_components, self.n_features), dtype=int)
 		for i,edges in enumerate(self.D_edges): 
 			supports[i,np.unique(self.edges[edges])] = 1
+		supports = pd.DataFrame(supports, columns=self.data.columns)
 		return supports
+
+
+	def edge_support_df(self): 
+		membership = np.zeros(shape=(self.n_components, len(self.edgelist)), dtype=int)
+		for i,edges in enumerate(self.D_edges): 
+			membership[i,edges] = 1
+		membership = pd.DataFrame(membership)
+		return membership
 
 
 	def output_normalized_decomposition(self): 
