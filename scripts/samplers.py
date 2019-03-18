@@ -14,11 +14,17 @@ import networkx as nx
 
 class SourceSampler: 
 
-	def __init__(self, graph, method): 
+	def __init__(self, edgelist, method): 
+
+		if isinstance(edgelist, str): edgelist = pd.read_csv(edgelist, sep='\t')
+
+		self.graph = nx.from_pandas_edgelist(edgelist, source="anchor1", target="anchor2", edge_attr="cost")
+
+		self.features = self.graph.nodes
 
 		# Import as networkx object if path is provided
-		if isinstance(graph, str): self.graph = nx.read_gpickle(graph)
-		else: self.graph = graph
+		# if isinstance(graph, str): self.graph = nx.read_gpickle(graph)
+		# else: self.graph = graph
 
 		self.method = method
 
@@ -50,12 +56,12 @@ class SourceSampler:
 
 	def _gene_list_to_boolean_signal(self, gene_list): 
 		# Each gene in gene_list is assigned a value 1, the rest are assigned 0
-		signal_series = pd.Series(data=1, index=gene_list).reindex(self.graph.nodes).fillna(0).astype(int)
+		signal_series = pd.Series(data=1, index=gene_list).reindex(self.features).fillna(0).astype(int)
 		return signal_series.values
 
 	def _sample_test(self, size): 
 		# Sample nodes without replacement
-		random_nodes = np.random.choice(self.graph.nodes, size, replace=False) 
+		random_nodes = np.random.choice(self.features, size, replace=False) 
 
 		return self._gene_list_to_boolean_signal(random_nodes)
 
@@ -67,7 +73,7 @@ class SourceSampler:
 		visited_nodes = list(np.random.choice(self.graph, 1))
 		current_node = visited_nodes[0]
 		while len(visited_nodes) < size: 
-			genes,scores = zip(*[[neighbor,cofidence] for _,neighbor,cofidence in self.graph.edges(current_node, data="confidence")])
+			genes,scores = zip(*[[neighbor,cofidence] for _,neighbor,cofidence in self.graph.edges(current_node, data="cost")])
 			genes = list(genes)
 			scores = np.array(scores) / sum(scores)
 			
@@ -84,7 +90,7 @@ class SourceSampler:
 		current_node = visited_nodes[0]
 		
 		for _ in range(iters): 
-			genes,scores = zip(*[[neighbor,confidence] for _,neighbor,confidence in self.graph.edges(current_node, data="confidence")])
+			genes,scores = zip(*[[neighbor,cost] for _,neighbor,cost in self.graph.edges(current_node, data="cost")])
 			genes = list(genes)
 			scores = np.array(scores) / sum(scores)
 			

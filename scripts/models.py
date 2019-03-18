@@ -36,6 +36,11 @@ def save_results(X_path, out_path, method, **model_params):
 		results = ICA1(X, **model_params)
 
 	elif method == "GSD": 
+
+		with open(os.path.join(os.path.dirname(X_path), "feature_list.txt")) as f: 
+			features = [x.rstrip() for x in f.readlines()]
+
+		X = pd.DataFrame(X, columns=features)
 		results = run_GSD(X, **model_params)
 
 	else:
@@ -70,15 +75,29 @@ def get_model_tag(method, **params):
 
 ######## GSD ########
 
-def run_GSD(X, n_iterations, **params): 
+# def run_GSD(X, n_iterations, **params): 
 	
-	gsd = GSD(X, **params)
+# 	gsd = GSD(X, **params)
 	
+# 	for _ in range(n_iterations): 
+# 		for i in range(gsd.n_components): 
+# 			gsd.update(i)
+			
+# 	return gsd.components
+
+
+
+def run_GSD(X, edge_file, n_iterations, **params): 
+
+	edgelist = pd.read_csv(edge_file, sep='\t')
+
+	gsd = GSD(X, edgelist, params)
+
 	for _ in range(n_iterations): 
 		for i in range(gsd.n_components): 
 			gsd.update(i)
-			
-	return gsd.components
+
+	return gsd.D
 
 
 ######## BENCHMARKS ########

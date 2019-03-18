@@ -55,7 +55,7 @@ class Evaluate:
 		self.model_paramlist = [ { **p, 'method':model_attr['method'] } for model_attr in self.model_specs for p in ParameterGrid(model_attr['grid']) ]
 
 		# Sampler objects for generating source and loading matrices as well as their tags.
-		self.source_sampler  = SourceSampler(self.data_specs['graph'], self.data_specs['source_sampler_method'])
+		self.source_sampler  = SourceSampler(self.data_specs['edgelist'], self.data_specs['source_sampler_method'])
 		self.loading_sampler = LoadingSampler(self.data_specs['loading_sampler_method'])
 
 		# Get path from parameters
@@ -139,6 +139,13 @@ class Evaluate:
 				np.save(X_path, X)
 				logger.info("Wrote data matrix: {}.".format(X_path))
 
+		with open(os.path.join(self.X_dir, "feature_list.txt"), "w") as f: 
+			f.write("\n".join([ x for x in self.source_sampler.features ]))
+
+		# feature_file = os.path.join(self.X_dir, "feature_list.txt")
+		# if not os.path.exists(feature_file): 
+		# 	with 
+
 
 
 parser = argparse.ArgumentParser(description="""Evaluate different models for synthetic data.""")
@@ -171,7 +178,7 @@ def main():
 	data_specs_file = args.data_specs_file
 	model_specs_file = args.model_specs_file
 
-	if data_specs_file is None: data_specs_file = os.path.join(output_dir, "data_specs.json")
+	if data_specs_file  is None: data_specs_file = os.path.join(output_dir, "data_specs.json")
 	if model_specs_file is None: model_specs_file = os.path.join(output_dir, "model_specs.json")
 
 	eval = Evaluate(output_dir, data_specs_file, model_specs_file)

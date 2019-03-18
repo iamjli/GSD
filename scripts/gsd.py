@@ -266,7 +266,7 @@ class GSD:
 		return objective, error, D_edges
 
 
-	def steiner_support_df(self): 
+	def get_steiner_support_df(self): 
 		"""Gets components that may contain Steiner nodes."""
 		supports = np.zeros(shape=(self.n_components, self.n_features), dtype=int)
 		for i,edges in enumerate(self.D_edges): 
@@ -275,7 +275,7 @@ class GSD:
 		return supports
 
 
-	def edge_support_df(self): 
+	def get_edge_support_df(self): 
 		membership = np.zeros(shape=(self.n_components, len(self.edgelist)), dtype=int)
 		for i,edges in enumerate(self.D_edges): 
 			membership[i,edges] = 1
