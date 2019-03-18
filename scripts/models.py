@@ -75,18 +75,6 @@ def get_model_tag(method, **params):
 
 ######## GSD ########
 
-# def run_GSD(X, n_iterations, **params): 
-	
-# 	gsd = GSD(X, **params)
-	
-# 	for _ in range(n_iterations): 
-# 		for i in range(gsd.n_components): 
-# 			gsd.update(i)
-			
-# 	return gsd.components
-
-
-
 def run_GSD(X, edge_file, n_iterations, **params): 
 
 	edgelist = pd.read_csv(edge_file, sep='\t')

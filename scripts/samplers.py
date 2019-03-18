@@ -100,6 +100,9 @@ class SourceSampler:
 
 		return self._gene_list_to_boolean_signal(visited_nodes)
 
+	## MARTINA'S CODE
+	# def _martinas_sampler(self): pass
+	
 
 
 class LoadingSampler: 
