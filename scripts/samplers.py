@@ -22,10 +22,6 @@ class SourceSampler:
 
 		self.features = self.graph.nodes
 
-		# Import as networkx object if path is provided
-		# if isinstance(graph, str): self.graph = nx.read_gpickle(graph)
-		# else: self.graph = graph
-
 		self.method = method
 
 	########  QUERIES  ########
@@ -102,7 +98,7 @@ class SourceSampler:
 
 	## MARTINA'S CODE
 	# def _martinas_sampler(self): pass
-	
+
 
 
 class LoadingSampler: 
