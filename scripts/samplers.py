@@ -22,10 +22,6 @@ class SourceSampler:
 
 		self.features = self.graph.nodes
 
-		# Import as networkx object if path is provided
-		# if isinstance(graph, str): self.graph = nx.read_gpickle(graph)
-		# else: self.graph = graph
-
 		self.method = method
 
 	########  QUERIES  ########
@@ -99,6 +95,9 @@ class SourceSampler:
 				visited_nodes.append(current_node)
 
 		return self._gene_list_to_boolean_signal(visited_nodes)
+
+	## MARTINA'S CODE
+	# def _martinas_sampler(self): pass
 
 
 
