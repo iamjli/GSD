@@ -41,12 +41,15 @@ class GSD:
 
 		defaults = { 
 			"a": 0.4, 
+			"w": 1, 
 			"n_components": 3, 
+
 			"method": "gsPCA", 
 			"initializer": "zeros", 
 			"same_sign": True, 
+
 			"dummy_nodes": [], 
-			"w": 1
+			"rooted_PCSF": False
 		}
 
 		self.params = Options({**defaults, **params})
@@ -123,12 +126,20 @@ class GSD:
 			node_indices, edge_indices = pcst_fast(self.edges, prizes, costs, -1, 1, "strong", 0)
 
 		else: 
-			# This is an alternative implementation of PCSF that roots the dummy node by assigning
-			# a prize to it such that the prize is slightly larger than the cost of its associated
-			# edges. This method of rooting runs faster than rooting the graph explicitly using the 
-			# `root` parameter in the `pcst_fast` function. 
-			prizes = np.concatenate((prizes, [ max(costs) * 1.01 ]))
-			node_indices, edge_indices = pcst_fast(self.edges, prizes, costs, -1, 1, "strong", 0)
+			if self.params.rooted_PCSF: 
+				# Classic implementation of PCSF which roots the tree at the dummy node which has a prize of 0. 
+				# See OI2 for more details. 
+				prizes = np.concatenate((prizes, [0]))
+				node_indices, edge_indices = pcst_fast(self.edges, prizes, costs, self._dummy_id, 1, "strong", 0)
+
+			else: 
+				# Alternative implementation of PCSF that artificially roots the dummy node by assigning
+				# a prize to it such that the prize is slightly larger than the cost of its associated edges. 
+				# This method of rooting runs faster than rooting the graph explicitly using the 
+				# `root` parameter in the `pcst_fast` function, but may offer worse solutions. 
+				prizes = np.concatenate((prizes, [ max(costs) * 1.01 ]))
+				node_indices, edge_indices = pcst_fast(self.edges, prizes, costs, -1, 1, "strong", 0)
+
 			# Remove references to dummy node
 			node_indices = node_indices[node_indices != self._dummy_id]
 			edge_indices = self.edgelist.index & edge_indices
@@ -257,13 +268,13 @@ class GSD:
 		"""
 		
 		# Total cost of edges for all trees
-		D_cost = sum([ sum(self.costs[edges]) for edges in D_edges ])
+		D_cost = sum([ sum(self.costs[edges]) for edges in D_edges ]) * self.params.a
 		# Reconstruction error
 		error = ((self.X - Z.dot(D)) ** 2).sum() / self.n_samples
 		# Objective score
 		objective = error + D_cost
 		
-		return objective, error, D_edges
+		return objective, error, D_cost
 
 
 	def get_steiner_support_df(self): 
