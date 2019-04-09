@@ -5,7 +5,6 @@ import os
 import pickle
 import multiprocessing
 import logging
-import options
 
 # Python external libraries
 import pandas as pd
@@ -28,26 +27,33 @@ logger.addHandler(handler)
 
 # n_cpus = multiprocessing.cpu_count()
 
+class Options(object):
+	def __init__(self, options):
+		self.__dict__.update(options)
+	def __repr__(self):
+		return dict(self.__dict__)
+
 
 class GSD:
 
-	defaults = options.Options(
-		a = 0.4, 
-		w = 1, 
-		n_components = 3, 
-		n_iterations = 5,
+	defaults = {
+		"a" : 0.4, 
+		"w" : 1, 
+		"n_components" : 3, 
+		"n_iterations" : 5,
 
-		method      = "gsPCA", 
-		initializer = "zeros", 
-		same_sign   = True, 
+		"method" : "gsPCA", 
+		"initializer" : "zeros", 
+		"same_sign" : True, 
 
-		dummy_nodes = [], 
-		rooted_PCSF = False
-	)
+		"dummy_nodes" : [], 
+		"rooted_PCSF" : False
+	}
 
 	def __init__(self, data, edgelist, params=dict()): 
 
-		self.params = GSD.defaults.push(params)
+		# Overwrite the defaults with any user-specified parameters.
+		self.params = Options({**GSD.defaults, **params})
 
 		self.data = data
 		self.edgelist = edgelist
