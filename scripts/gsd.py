@@ -282,8 +282,11 @@ class GSD:
 	def get_steiner_support_df(self): 
 		"""Gets components that may contain Steiner nodes."""
 		supports = np.zeros(shape=(self.n_components, self.n_features), dtype=int)
+		# Non-zero elements of D are included in the support
+		supports[ self.D != 0 ] = 1
+		# Tree components may also contain zero-value features (aka Steiner nodes), so we search for them here
 		for i,edges in enumerate(self.D_edges): 
-			supports[i,np.unique(self.edges[edges])] = 1
+			supports[i, np.unique(self.edges[edges])] = 1
 		supports = pd.DataFrame(supports, columns=self.data.columns)
 		return supports
 
